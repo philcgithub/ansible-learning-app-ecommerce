@@ -1,0 +1,13 @@
+# This playbook deploys the whole application from here:
+# https://github.com/kodekloudhub/learning-app-ecommerce
+# Currently it assumes that dbserver and webserver are installed on a single machine
+
+- hosts: db1
+  roles:
+  - common
+  - dbserver
+
+- hosts: web1
+  roles:
+  - common
+  - webserver

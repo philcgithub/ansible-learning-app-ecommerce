@@ -1,0 +1,81 @@
+# Install required packages
+# sudo yum install -y httpd php php-mysql
+# sudo firewall-cmd --permanent --zone=public --add-port=80/tcp
+# sudo firewall-cmd --reload
+#
+# Configure httpd
+# Change DirectoryIndex index.html to DirectoryIndex index.php to make the php page the default page
+# sudo sed -i 's/index.html/index.php/g' /etc/httpd/conf/httpd.conf
+#
+# Start httpd
+# sudo service httpd start
+# sudo systemctl enable httpd
+#
+# Download code
+# sudo yum install -y git
+# git clone https://github.com/kodekloudhub/learning-app-ecommerce.git /var/www/html/
+#
+# Update index.php
+# Update index.php file to connect to the right database server. In this case localhost since the database is on the same server.
+# sudo sed -i 's/172.20.1.101/localhost/g' /var/www/html/index.php
+#               <?php
+#                         $link = mysqli_connect('172.20.1.101', 'ecomuser', 'ecompassword', 'ecomdb');
+#                         if ($link) {
+#                         $res = mysqli_query($link, "select * from products;");
+#                         while ($row = mysqli_fetch_assoc($res)) { ?>
+# ON a multi-node setup remember to provide the IP address of the database server here.
+# sudo sed -i 's/172.20.1.101/localhost/g' /var/www/html/index.php
+
+- name: Install httpd
+  dnf: name=httpd state=present
+  become: yes
+
+- name: Install php
+  dnf: name=php state=present
+  become: yes
+
+- name: Install php-mysqlnd
+  dnf: name=php-mysqlnd state=present
+  become: yes
+
+- name: Configure firewall for Web server
+  ansible.posix.firewalld:
+    port: 80/tcp
+    zone: public
+    permanent: yes
+    state: enabled
+
+- name: Reload firewall
+  command: 'firewall-cmd --reload'
+  become: yes
+  register: shell_result
+
+- name: Show output of reloading firewall
+  debug:
+    var: shell_result
+
+- name: Configure httpd
+  replace:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: index.html
+    replace: index.php
+
+- name: Start httpd
+  service: name=httpd state=started enabled=yes
+  become: yes
+
+- name: Install git
+  dnf: name=git state=present
+  become: yes
+
+- name: Download code
+  git:
+    repo: https://github.com/kodekloudhub/learning-app-ecommerce.git
+    dest: /var/www/html/
+    update: no
+
+- name: Update index.php
+  replace:
+    path: /var/www/html/index.php
+    regexp: 172.20.1.101
+    replace: localhost

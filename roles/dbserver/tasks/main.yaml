@@ -1,0 +1,69 @@
+# Install MariaDB
+# sudo yum install -y mariadb-server
+# sudo vi /etc/my.cnf  -- not needed
+# sudo service mariadb start
+# sudo systemctl enable mariadb
+#
+# Configure firewall for Database
+# sudo firewall-cmd --permanent --zone=public --add-port=3306/tcp
+# sudo firewall-cmd --reload
+#
+# Configure Database
+# $ mysql
+# MariaDB > CREATE DATABASE ecomdb;
+# MariaDB > CREATE USER 'ecomuser'@'localhost' IDENTIFIED BY 'ecompassword';
+# MariaDB > GRANT ALL PRIVILEGES ON *.* TO 'ecomuser'@'localhost';
+# MariaDB > FLUSH PRIVILEGES;
+# ON a multi-node setup remember to provide the IP address of the web server here: 'ecomuser'@'web-server-ip'
+#
+# Load Product Inventory Information to database
+# Create the db-load-script.sql
+#
+# cat > db-load-script.sql <<-EOF
+# USE ecomdb;
+# CREATE TABLE products (id mediumint(8) unsigned NOT NULL auto_increment,Name varchar(255) default NULL,Price varchar(255) default NULL, ImageUrl varchar(255) default NULL,PRIMARY KEY (id)) AUTO_INCREMENT=1;
+# INSERT INTO products (Name,Price,ImageUrl) VALUES ("Laptop","100","c-1.png"),("Drone","200","c-2.png"),("VR","300","c-3.png"),("Tablet","50","c-5.png"),("Watch","90","c-6.png"),("Phone Covers","20","c-7.png"),("Phone","80","c-8.png"),("Laptop","150","c-4.png");
+# EOF
+#
+# Run sql script
+# mysql < db-load-script.sql
+
+- name: Install MariaDB
+  dnf: name=mariadb-server state=present
+  become: yes
+
+- name: Start the MariaDB service
+  service: name=mariadb state=started enabled=yes
+  become: yes
+
+- name: Configure firewall for Database
+  ansible.posix.firewalld:
+    port: 3306/tcp
+    zone: public
+    permanent: yes
+    state: enabled
+
+- name: Reload firewall
+  command: 'firewall-cmd --reload'
+  become: yes
+  register: shell_result
+
+- name: Show output of reloading firewall
+  debug:
+    var: shell_result
+
+- name: Move db-configure.sql to db host
+  template:
+    src: templates/db-configure.sql
+    dest: /tmp/db-configure.sql
+
+- name: Configure Database
+  shell: mysql -f < /tmp/db-configure.sql
+
+- name: Move db-load-script to db host
+  template:
+    src: templates/db-load-script.sql
+    dest: /tmp/db-load-script.sql
+
+- name: Load Product Inventory Information to database
+  shell: mysql -f < /tmp/db-load-script.sql

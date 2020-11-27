@@ -1,0 +1,11 @@
+# sudo yum install -y firewalld
+# sudo service firewalld start
+# sudo systemctl enable firewalld
+
+- name: Install the firewall
+  dnf: name=firewalld state=present
+  become: yes
+
+- name: Start the firewall
+  service: name=firewalld state=started enabled=yes
+  become: yes
